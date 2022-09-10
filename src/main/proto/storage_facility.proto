@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
+
+option java_multiple_files = true;
+option java_package = "com.brightly.storage.grpc";
+option java_outer_classname = "StorageFacilityProto";
+
+package storage_facility;
+
+service StorageFacilityService {
+  rpc CreateFacility (StorageFacilityRequest) returns (google.protobuf.Int64Value) {}
+  rpc GetFacilityByLocation (google.protobuf.StringValue) returns (StorageFacilityResponse) {}
+  rpc GetFacilityById (google.protobuf.Int64Value) returns (StorageFacilityResponse) {}
+
+  rpc CreateStorageLocation(StorageLocationRequest) returns (google.protobuf.Int64Value) {}
+  rpc ListStorageLocationsForFacility(google.protobuf.Int64Value) returns (StorageLocationResponse) {}
+}
+
+message StorageFacilityRequest {
+  string location_id = 1;
+  string description = 2;
+  repeated string layout_labels = 3;
+}
+
+message StorageFacilityResponse {
+  string description = 1;
+  repeated string layout_labels = 2;
+  bool is_active = 3;
+  repeated int64 storage_location_id = 4;
+}
+
+message StorageLocationRequest {
+  string location_id = 1;
+  repeated string layout_values = 2;
+}
+
+message StorageLocationResponse {
+  repeated StorageLocation storage_locations = 1;
+}
+
+message StorageLocation {
+  int64 storage_location_id = 1;
+  repeated string layout_values = 2;
+  bool is_active = 3;
+}
