@@ -82,4 +82,23 @@ public class StorageFacilityGrpc
                 .transform(inserted -> Int64Value.newBuilder().setValue(inserted.id).build());
     }
 
+    public Uni<StorageLocationResponse> listStorageLocationsForFacility(Int64Value request) {
+        return storageFacilityRepository
+                .findById(request.getValue())
+                .onItem()
+                .transform(facility -> StorageLocationResponse.newBuilder()
+                        .addAllStorageLocations(
+                                facility.getLocations()
+                                        .stream()
+                                        .map(storageLocation ->
+                                            com.brightly.storage.grpc.StorageLocation.newBuilder()
+                                                    .setStorageLocationId(storageLocation.id)
+                                                    .addAllLayoutValues(storageLocation.getLayoutValues())
+                                                    .setIsActive(storageLocation.isActive())
+                                                    .build()
+                                        )
+                                        .collect(Collectors.toList()))
+                        .build());
+    }
+
 }
