@@ -11,11 +11,19 @@ package storage_facility;
 
 service StorageFacilityService {
   rpc CreateFacility (StorageFacilityRequest) returns (google.protobuf.Int64Value) {}
+  rpc UpdateFacility (StorageFacilityRequest) returns (google.protobuf.StringValue) {}
   rpc GetFacilityByLocation (google.protobuf.StringValue) returns (StorageFacilityResponse) {}
   rpc GetFacilityById (google.protobuf.Int64Value) returns (StorageFacilityResponse) {}
 
   rpc CreateStorageLocation(StorageLocationRequest) returns (google.protobuf.Int64Value) {}
+  rpc UpdateStorageLocation(StorageLocationUpdateRequest) returns (google.protobuf.StringValue) {}
   rpc ListStorageLocationsForFacility(google.protobuf.Int64Value) returns (StorageLocationResponse) {}
+}
+
+message StorageLocationUpdateRequest {
+  string location_id = 1;
+  repeated string current_layout_values = 2;
+  repeated string new_layout_values = 3;
 }
 
 message StorageFacilityRequest {

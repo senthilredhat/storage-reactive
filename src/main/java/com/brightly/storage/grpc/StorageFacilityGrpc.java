@@ -21,6 +21,7 @@ public class StorageFacilityGrpc
 
     @Override
     public Uni<Int64Value> createFacility(StorageFacilityRequest request) {
+
         StorageFacility storageFacility = new StorageFacility();
         storageFacility.setLocationId(request.getLocationId());
         storageFacility.setDescription(request.getDescription());
@@ -28,6 +29,23 @@ public class StorageFacilityGrpc
         return Panache
                 .withTransaction(() -> storageFacilityRepository.persist(storageFacility))
                 .onItem().transform(inserted -> Int64Value.newBuilder().setValue(inserted.id).build());
+    }
+
+    public Uni<StringValue> updateFacility(StorageFacilityRequest request) {
+
+        return storageFacilityRepository
+                .find("location_id = ?1", request.getLocationId())
+                .firstResult()
+                .onItem()
+                .call(storageFacility ->
+                        Panache.withTransaction(() -> {
+                            storageFacility.setDescription(request.getDescription());
+                            storageFacility.setLayoutLabels(request.getLayoutLabelsList());
+
+                            return storageFacilityRepository.persist(storageFacility);
+                        }))
+                .onItem()
+                .transform(facility -> StringValue.newBuilder().setValue(facility.getLocationId()).build());
     }
 
     @Override
@@ -80,6 +98,28 @@ public class StorageFacilityGrpc
                             }))
                 .onItem()
                 .transform(inserted -> Int64Value.newBuilder().setValue(inserted.id).build());
+    }
+
+    @Override
+    public Uni<StringValue> updateStorageLocation(StorageLocationUpdateRequest request) {
+
+        return storageFacilityRepository
+                .find("location_id = ?1", request.getLocationId())
+                .firstResult()
+                .onItem()
+                .call(storageFacility ->
+                        Panache.withTransaction(() -> {
+                            var storageLocation = storageFacility.getLocations()
+                                    .stream()
+                                    .filter(l -> l.getLayoutValues().equals(request.getCurrentLayoutValuesList()))
+                                    .findFirst().orElse(null);
+
+                            storageLocation.setLayoutValues(
+                                    request.getNewLayoutValuesList());
+                            return storageFacilityRepository.persist(storageFacility);
+                        }))
+                .onItem()
+                .transform(facility -> StringValue.newBuilder().setValue(facility.getLocationId()).build());
     }
 
     public Uni<StorageLocationResponse> listStorageLocationsForFacility(Int64Value request) {
