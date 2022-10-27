@@ -7,9 +7,11 @@ import com.google.protobuf.Int64Value;
 import com.google.protobuf.StringValue;
 import io.quarkus.grpc.GrpcService;
 import io.quarkus.hibernate.reactive.panache.Panache;
+import io.smallrye.common.annotation.Blocking;
 import io.smallrye.mutiny.Uni;
 
 import javax.inject.Inject;
+import javax.transaction.Transactional;
 import java.util.stream.Collectors;
 
 @GrpcService
@@ -22,13 +24,33 @@ public class StorageFacilityGrpc
     @Override
     public Uni<Int64Value> createFacility(StorageFacilityRequest request) {
 
+        return Panache
+                .withTransaction(() -> {
+                            StorageFacility storageFacility = new StorageFacility();
+                            storageFacility.setLocationId(request.getLocationId());
+                            storageFacility.setDescription(request.getDescription());
+                            storageFacility.setLayoutLabels(request.getLayoutLabelsList());
+                            return storageFacilityRepository.persist(storageFacility);})
+                .onItem()
+                .transform(inserted -> Int64Value.newBuilder()
+                                .setValue(inserted.id)
+                                .build());
+    }
+
+    @Transactional
+    @Blocking
+    public Uni<Int64Value> createFacilityBlocking(StorageFacilityRequest request) {
+
         StorageFacility storageFacility = new StorageFacility();
         storageFacility.setLocationId(request.getLocationId());
         storageFacility.setDescription(request.getDescription());
         storageFacility.setLayoutLabels(request.getLayoutLabelsList());
-        return Panache
-                .withTransaction(() -> storageFacilityRepository.persist(storageFacility))
-                .onItem().transform(inserted -> Int64Value.newBuilder().setValue(inserted.id).build());
+
+        return storageFacilityRepository.persistAndFlush(storageFacility)
+                .onItem()
+                .transform(inserted ->
+                        Int64Value.newBuilder().setValue(inserted.id).build());
+
     }
 
     public Uni<StringValue> updateFacility(StorageFacilityRequest request) {
@@ -48,6 +70,7 @@ public class StorageFacilityGrpc
                 .transform(facility -> StringValue.newBuilder().setValue(facility.getLocationId()).build());
     }
 
+    @Transactional
     @Override
     public Uni<StorageFacilityResponse> getFacilityByLocation(StringValue request) {
         return storageFacilityRepository

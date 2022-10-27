@@ -11,6 +11,7 @@ package storage_facility;
 
 service StorageFacilityService {
   rpc CreateFacility (StorageFacilityRequest) returns (google.protobuf.Int64Value) {}
+  rpc CreateFacilityBlocking (StorageFacilityRequest) returns (google.protobuf.Int64Value) {}
   rpc UpdateFacility (StorageFacilityRequest) returns (google.protobuf.StringValue) {}
   rpc GetFacilityByLocation (google.protobuf.StringValue) returns (StorageFacilityResponse) {}
   rpc GetFacilityById (google.protobuf.Int64Value) returns (StorageFacilityResponse) {}

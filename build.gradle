@@ -14,9 +14,10 @@ dependencies {
     implementation 'io.quarkus:quarkus-hibernate-reactive-panache'
     implementation 'io.quarkus:quarkus-reactive-pg-client'
     implementation 'io.quarkus:quarkus-arc'
-    implementation 'com.fasterxml.jackson.core:jackson-core:2.8.7'
-    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.8.7'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.8.7'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.13.4'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.13.4'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.4.2'
+    implementation 'io.quarkus:quarkus-kafka-streams'
 
     testImplementation 'io.quarkus:quarkus-junit5'
 

@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_package = "com.brightly.storage.grpc";
+option java_outer_classname = "ItemsProto";
+
+package items;
+
+service ItemsService {
+  rpc CreateItems (ItemsRequest) returns (google.protobuf.Int64Value) {}
+  rpc GetItemById (google.protobuf.Int64Value) returns (ItemsResponse) {}
+}
+
+message ItemsRequest {
+  google.protobuf.Int64Value part_id = 1;
+  google.protobuf.Int64Value site_id = 2;
+  string name = 3;
+  string part_number = 4;
+  string cost_center_id = 5;
+  google.protobuf.Timestamp created_on = 6;
+  string created_by = 7;
+  google.protobuf.Timestamp last_modified_on = 8;
+  string last_modified_by = 9;
+}
+
+message ItemsResponse {
+  google.protobuf.Int64Value part_id = 1;
+  string name = 2;
+  string part_number = 3;
+}
+
