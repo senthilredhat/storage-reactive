@@ -2,10 +2,12 @@ package com.brightly.storage.grpc.client;
 
 import com.brightly.storage.grpc.ItemsRequest;
 import com.brightly.storage.grpc.ItemsServiceGrpc;
+import com.brightly.storage.grpc.MutinyItemsServiceGrpc;
 import com.brightly.storage.kafka.model.Part;
 import com.google.protobuf.Int64Value;
 import com.google.protobuf.Timestamp;
 import io.quarkus.grpc.GrpcClient;
+import io.smallrye.mutiny.Uni;
 
 import javax.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
@@ -14,9 +16,9 @@ import java.time.OffsetDateTime;
 public class ItemsGrpcClient {
 
     @GrpcClient("hello")
-    ItemsServiceGrpc.ItemsServiceBlockingStub itemsServiceBlockingStub;
+    MutinyItemsServiceGrpc.MutinyItemsServiceStub mutinyItemsServiceStub;
 
-    public Long createItem(Part part) {
+    public Uni<Long> createItem(Part part) {
         ItemsRequest item = ItemsRequest.newBuilder()
                 .setPartId(Int64Value.of(part.getPartId()))
                 .setPartNumber(part.getPartNo())
@@ -28,7 +30,7 @@ public class ItemsGrpcClient {
                 .setLastModifiedBy(part.getLastModifiedBy())
                 .build();
 
-        return itemsServiceBlockingStub.createItems(item).getValue();
+        return mutinyItemsServiceStub.createItems(item).onItem().transform(i -> i.getValue());
     }
 
     public static Timestamp toProtobufTimestamp(OffsetDateTime value) {

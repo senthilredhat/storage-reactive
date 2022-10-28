@@ -1,6 +1,6 @@
 package com.brightly.storage.kafka.streams;
 
-import com.brightly.storage.grpc.client.ItemsGrpcClient;
+import com.brightly.storage.applicationservice.ItemService;
 import com.brightly.storage.kafka.model.Kit;
 import com.brightly.storage.kafka.model.Part;
 import com.brightly.storage.kafka.model.PartKit;
@@ -12,6 +12,7 @@ import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.control.ActivateRequestContext;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 
@@ -23,9 +24,10 @@ public class TopologyProducer {
     static final String ZION_KIT_TOPIC = "zion-kit";
 
     @Inject
-    ItemsGrpcClient itemsGrpcClient;
+    ItemService itemService;
 
     @Produces
+    @ActivateRequestContext
     public Topology buildTopology() {
         ObjectMapperSerde<Part> partSerde = new ObjectMapperSerde<>(Part.class);
         ObjectMapperSerde<PartKit> partKitSerde = new ObjectMapperSerde<>(PartKit.class);
@@ -37,19 +39,11 @@ public class TopologyProducer {
                 ZION_PART_TOPIC,
                 Consumed.with(Serdes.Long(), partSerde));
 
-        partStream.peek((k,v) -> itemsGrpcClient.createItem(v));
-
-        KStream<Long, Kit> kitStream = builder.stream(
-                ZION_KIT_TOPIC,
-                Consumed.with(Serdes.Long(), kitSerde));
-
-        kitStream.peek((k,v) -> System.out.println("Kit Key: "+k+" Value: "+v));
-
-        KStream<Long, PartKit> partKitStream = builder.stream(
-                ZION_PART_KIT_TOPIC,
-                Consumed.with(Serdes.Long(), partKitSerde));
-
-        partKitStream.peek((k,v) -> System.out.println("Part Kit Key: "+k+" Value: "+v));
+        partStream.peek((k,v) -> {
+            var value = itemService.createItem(v).await()
+                    .indefinitely();
+            System.out.println("Part consumed; Value: "+value.getValue());
+        });
 
         return builder.build();
     }
