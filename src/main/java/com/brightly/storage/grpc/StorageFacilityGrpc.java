@@ -3,10 +3,12 @@ package com.brightly.storage.grpc;
 import com.brightly.storage.entity.StorageFacility;
 import com.brightly.storage.entity.StorageFacilityRepository;
 import com.brightly.storage.entity.StorageLocation;
+import com.brightly.storage.utility.FGAClientConnector;
 import com.google.protobuf.Int64Value;
 import com.google.protobuf.StringValue;
 import io.quarkus.grpc.GrpcService;
 import io.quarkus.hibernate.reactive.panache.Panache;
+import io.quarkus.hibernate.reactive.panache.common.runtime.ReactiveTransactional;
 import io.smallrye.common.annotation.Blocking;
 import io.smallrye.mutiny.Uni;
 
@@ -21,20 +23,22 @@ public class StorageFacilityGrpc
     @Inject
     StorageFacilityRepository storageFacilityRepository;
 
-    @Override
-    public Uni<Int64Value> createFacility(StorageFacilityRequest request) {
+    @Inject
+    FGAClientConnector connector;
 
-        return Panache
-                .withTransaction(() -> {
-                            StorageFacility storageFacility = new StorageFacility();
-                            storageFacility.setLocationId(request.getLocationId());
-                            storageFacility.setDescription(request.getDescription());
-                            storageFacility.setLayoutLabels(request.getLayoutLabelsList());
-                            return storageFacilityRepository.persist(storageFacility);})
+    @Override
+    @ReactiveTransactional
+    public Uni<Int64Value> createFacility(StorageFacilityRequest request) {
+        StorageFacility storageFacility = new StorageFacility();
+        storageFacility.setLocationId(request.getLocationId());
+        storageFacility.setDescription(request.getDescription());
+        storageFacility.setLayoutLabels(request.getLayoutLabelsList());
+
+        return storageFacilityRepository.persist(storageFacility)
                 .onItem()
                 .transform(inserted -> Int64Value.newBuilder()
-                                .setValue(inserted.id)
-                                .build());
+                        .setValue(inserted.id)
+                        .build()).call(() -> connector.callFGA(request.getLocationId()));
     }
 
     @Transactional
@@ -78,14 +82,14 @@ public class StorageFacilityGrpc
                 .firstResult()
                 .onItem()
                 .transform(facility -> StorageFacilityResponse.newBuilder()
-                            .setDescription(facility.getDescription())
-                            .addAllLayoutLabels(facility.getLayoutLabels())
-                            .addAllStorageLocationId(
+                        .setDescription(facility.getDescription())
+                        .addAllLayoutLabels(facility.getLayoutLabels())
+                        .addAllStorageLocationId(
                                 facility.getLocations()
                                         .stream()
                                         .map(location -> location.id)
                                         .collect(Collectors.toList()))
-                            .setIsActive(facility.isActive()).build());
+                        .setIsActive(facility.isActive()).build());
     }
 
     @Override
@@ -94,14 +98,14 @@ public class StorageFacilityGrpc
                 .findById(request.getValue())
                 .onItem()
                 .transform(facility -> StorageFacilityResponse.newBuilder()
-                            .setDescription(facility.getDescription())
-                            .addAllLayoutLabels(facility.getLayoutLabels())
-                            .addAllStorageLocationId(
-                                    facility.getLocations()
-                                            .stream()
-                                            .map(location -> location.id)
-                                            .collect(Collectors.toList()))
-                            .setIsActive(facility.isActive()).build());
+                        .setDescription(facility.getDescription())
+                        .addAllLayoutLabels(facility.getLayoutLabels())
+                        .addAllStorageLocationId(
+                                facility.getLocations()
+                                        .stream()
+                                        .map(location -> location.id)
+                                        .collect(Collectors.toList()))
+                        .setIsActive(facility.isActive()).build());
     }
 
     @Override
@@ -110,15 +114,15 @@ public class StorageFacilityGrpc
                 .find("location_id = ?1", request.getLocationId())
                 .firstResult().onItem()
                 .call(storageFacility ->
-                    Panache.withTransaction(() -> {
-                                var storageLocation = new StorageLocation();
-                                storageLocation.setLayoutValues(
-                                        request.getLayoutValuesList());
-                                storageLocation.setActive(true);
-                                storageLocation.setFacility(storageFacility);
-                                storageFacility.getLocations().add(storageLocation);
-                                return storageFacilityRepository.persist(storageFacility);
-                            }))
+                        Panache.withTransaction(() -> {
+                            var storageLocation = new StorageLocation();
+                            storageLocation.setLayoutValues(
+                                    request.getLayoutValuesList());
+                            storageLocation.setActive(true);
+                            storageLocation.setFacility(storageFacility);
+                            storageFacility.getLocations().add(storageLocation);
+                            return storageFacilityRepository.persist(storageFacility);
+                        }))
                 .onItem()
                 .transform(inserted -> Int64Value.newBuilder().setValue(inserted.id).build());
     }
@@ -154,11 +158,11 @@ public class StorageFacilityGrpc
                                 facility.getLocations()
                                         .stream()
                                         .map(storageLocation ->
-                                            com.brightly.storage.grpc.StorageLocation.newBuilder()
-                                                    .setStorageLocationId(storageLocation.id)
-                                                    .addAllLayoutValues(storageLocation.getLayoutValues())
-                                                    .setIsActive(storageLocation.isActive())
-                                                    .build()
+                                                com.brightly.storage.grpc.StorageLocation.newBuilder()
+                                                        .setStorageLocationId(storageLocation.id)
+                                                        .addAllLayoutValues(storageLocation.getLayoutValues())
+                                                        .setIsActive(storageLocation.isActive())
+                                                        .build()
                                         )
                                         .collect(Collectors.toList()))
                         .build());
