@@ -1,6 +1,7 @@
 package com.brightly.storage.utility;
 
 import com.brightly.storage.entity.StorageFacility;
+import io.quarkus.hibernate.reactive.panache.common.runtime.ReactiveTransactional;
 import io.smallrye.mutiny.Uni;
 import org.hibernate.reactive.mutiny.Mutiny;
 
@@ -10,20 +11,19 @@ public class FGAClientSynchronizer {
     @Inject
     Mutiny.SessionFactory factory;
 
-    protected Uni<Void> sendToFGA(String message) {
+    @ReactiveTransactional
+    public Uni<Void> sendToFGA(String message) {
         System.out.println("Sending to FGA");
         return factory.withTransaction((session, txn) -> {
-            try {
                 if (!txn.isMarkedForRollback()) {
-                    callFGAClient(message);
+                    try {
+                        callFGAClient(message);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
                 }
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                txn.markForRollback();
-                System.out.println(txn.isMarkedForRollback());
-            }
             return Uni.createFrom().voidItem();
-        } );
+        });
     }
 
     public void callFGAClient(String message) throws Exception {
