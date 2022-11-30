@@ -3,12 +3,10 @@ package com.brightly.storage.grpc;
 import com.brightly.storage.entity.StorageFacility;
 import com.brightly.storage.entity.StorageFacilityRepository;
 import com.brightly.storage.entity.StorageLocation;
-import com.brightly.storage.utility.FGAClientConnector;
 import com.google.protobuf.Int64Value;
 import com.google.protobuf.StringValue;
 import io.quarkus.grpc.GrpcService;
 import io.quarkus.hibernate.reactive.panache.Panache;
-import io.quarkus.hibernate.reactive.panache.common.runtime.ReactiveTransactional;
 import io.smallrye.common.annotation.Blocking;
 import io.smallrye.mutiny.Uni;
 
@@ -24,21 +22,20 @@ public class StorageFacilityGrpc
     StorageFacilityRepository storageFacilityRepository;
 
     @Inject
-    FGAClientConnector connector;
+    StorageFacilitySvc svc;
 
     @Override
-    @ReactiveTransactional
     public Uni<Int64Value> createFacility(StorageFacilityRequest request) {
         StorageFacility storageFacility = new StorageFacility();
         storageFacility.setLocationId(request.getLocationId());
         storageFacility.setDescription(request.getDescription());
         storageFacility.setLayoutLabels(request.getLayoutLabelsList());
 
-        return storageFacilityRepository.persist(storageFacility)
-                .onItem()
-                .transform(inserted -> Int64Value.newBuilder()
-                        .setValue(inserted.id)
-                        .build()).call(() -> connector.callFGA(request.getLocationId()));
+        return svc.createFacility(storageFacility)
+                .onFailure().recoverWithItem(failure -> Int64Value.newBuilder()
+                        .setValue(-1)
+                        .build())
+                ;
     }
 
     @Transactional
