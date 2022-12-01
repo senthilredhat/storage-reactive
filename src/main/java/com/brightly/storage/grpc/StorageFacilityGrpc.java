@@ -3,6 +3,7 @@ package com.brightly.storage.grpc;
 import com.brightly.storage.entity.StorageFacility;
 import com.brightly.storage.entity.StorageFacilityRepository;
 import com.brightly.storage.entity.StorageLocation;
+import com.brightly.storage.utility.FGAEventDispatcher;
 import com.google.protobuf.Int64Value;
 import com.google.protobuf.StringValue;
 import io.quarkus.grpc.GrpcService;
@@ -24,18 +25,23 @@ public class StorageFacilityGrpc
     @Inject
     StorageFacilitySvc svc;
 
+    @Inject
+    FGAEventDispatcher dispatcher;
+
+
     @Override
     public Uni<Int64Value> createFacility(StorageFacilityRequest request) {
         StorageFacility storageFacility = new StorageFacility();
         storageFacility.setLocationId(request.getLocationId());
         storageFacility.setDescription(request.getDescription());
         storageFacility.setLayoutLabels(request.getLayoutLabelsList());
-
         return svc.createFacility(storageFacility)
-                .onFailure().recoverWithItem(failure -> Int64Value.newBuilder()
-                        .setValue(-1)
-                        .build())
-                ;
+                .onFailure().recoverWithUni(failure -> {
+                    dispatcher.undoMessages();
+                    return Uni.createFrom().item(Int64Value.newBuilder()
+                            .setValue(-1)
+                            .build());
+                });
     }
 
     @Transactional

@@ -2,7 +2,8 @@ package com.brightly.storage.grpc;
 
 import com.brightly.storage.entity.StorageFacility;
 import com.brightly.storage.entity.StorageFacilityRepository;
-import com.brightly.storage.utility.FGAClientConnector;
+import com.brightly.storage.utility.FGAEventDispatcher;
+import com.brightly.storage.utility.FGAExceptionInterceptor;
 import com.google.protobuf.Int64Value;
 import io.quarkus.hibernate.reactive.panache.common.runtime.ReactiveTransactional;
 import io.smallrye.mutiny.Uni;
@@ -16,7 +17,7 @@ public class StorageFacilitySvc {
     @Inject
     StorageFacilityRepository storageFacilityRepository;
     @Inject
-    FGAClientConnector connector;
+    FGAEventDispatcher dispatcher;
 
     @ReactiveTransactional
     public Uni<Int64Value> createFacility(StorageFacility storageFacility) {
@@ -24,6 +25,6 @@ public class StorageFacilitySvc {
                 .onItem()
                 .transform(inserted -> Int64Value.newBuilder()
                         .setValue(inserted.id)
-                        .build()).call(() -> connector.callFGA(storageFacility.getLocationId()));
+                        .build()).call(() -> dispatcher.sendToFGA(storageFacility.getLocationId()));
     }
 }
